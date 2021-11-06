@@ -1,0 +1,3 @@
+cd /var/lib/cloud9/ENGI301/Project_1/SPI_screen
+./configure_pins.sh
+python3 song_names.py
