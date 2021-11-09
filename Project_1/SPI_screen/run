@@ -1,3 +1,4 @@
+#!/bin/bash
 cd /var/lib/cloud9/ENGI301/Project_1/SPI_screen
 ./configure_pins.sh
-python3 song_names.py
+PYTHONPATH=/var/lib/cloud9/ENGI301/Project_1/LED_Strip/:/var/lib/cloud9/ENGI301/Project_1/vibration/ python3 song_names.py

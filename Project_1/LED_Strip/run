@@ -2,6 +2,4 @@
 
 cd /var/lib/cloud9/ENGI301/Project_1/LED_Strip
 
-./configure_pins.sh
-
-PYTHONPATH=/var/lib/cloud9/ENGI301/Project_1/LED_Strip/ python3 LED_display.py
+sudo ./run-opc-server

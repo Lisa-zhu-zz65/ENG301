@@ -1,9 +1,9 @@
 #!/bin/bash
 # --------------------------------------------------------------------------
-# SPI Display - SPI0 - Configure Pins
+# Project1 - Configure Pins
 # --------------------------------------------------------------------------
 # License:
-# Copyright 2021 Erik Welsh
+# Copyright 2021 Lisa Zhu
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -31,11 +31,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # --------------------------------------------------------------------------
 #
-# Configure pins for Combination Lock:
-#   - I2C1
+# Configure pins for Project1:
+#   - SPI screen
 #   - Button
-#   - LEDs (Red / Green)
-#   - Servo
+#   - LED strip
 #
 # --------------------------------------------------------------------------
 
@@ -53,5 +52,14 @@ config-pin P2_33 gpio
 # Reset Pin
 config-pin P2_35 gpio
 
-#button config
+# button config
 config-pin P1_26 gpio
+
+# Data Pin for LED
+config-pin P1_08 gpio
+
+# PWM
+config-pin P2_01 pwm
+config-pin P2_03 pwm
+config-pin P1_33 pwm
+config-pin P1_36 pwm

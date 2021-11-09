@@ -2,7 +2,7 @@
 
 """
 --------------------------------------------------------------------------
-LED Music Visualizer
+LED Music Visualizer & Vibrator
 --------------------------------------------------------------------------
 License:   
 Copyright 2021 Lisa Zhu
@@ -32,14 +32,9 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------
-Control LED strip with WAV file data
-    
-    *LED strip: +5V to P1.24, Din to P1.08, and GND to P1.22
-    *microUSB breakout board: Vcc to P1.07, D- to P1.09, D+ to P1.11, and GND to P.13 (P.105 and P.107 are connected by solder, P1.13 and P1.15 are connected by solder)
-    *microUSB-to-USB adapter attached to USB audio splitter attached to microUSB breakout board
-    *Audio splitter: Mic input can use an AUX cord, Playback can use AUX to speakers or earphones
+Control LED strip and vibration motors with WAV file data
   
-LED lights according to tuple values extracted from wav file
+LED lights and vibrations according to tuple values extracted from wav file
 
 --------------------------------------------------------------------------
 Background Information: 
@@ -66,8 +61,8 @@ import wave
 import struct
 
 import opc
-import buzzer_test as buzzer
-
+import vibration as vibration
+from multiprocessing import Process
 # ------------------------------------------------------------------------
 # Constants
 # ------------------------------------------------------------------------
@@ -98,21 +93,15 @@ def pcm_channels(wave_file):
     stream = wave.open(wave_file,"rb")
 
     num_channels = stream.getnchannels()
-    sample_rate = stream.getframerate()
+    sample_rate  = stream.getframerate()
     sample_width = stream.getsampwidth()
-    num_frames = stream.getnframes()
-    
-    print("channels = {0}".format(num_channels))
-    print("sample_rate = {0}".format(sample_rate))
-    print("sample_width = {0}".format(sample_width))
-    print("num_frames = {0}".format(num_frames))
+    num_frames   = stream.getnframes()
     
     raw_data = stream.readframes( num_frames ) # Returns byte data
     stream.close()
 
     total_samples = num_frames * num_channels
-    
-    total_samples = 8000000
+ 
 
     if sample_width == 1: 
         fmt = "%iB" % total_samples # read unsigned chars
@@ -121,47 +110,57 @@ def pcm_channels(wave_file):
     else:
         raise ValueError("Only supports 8 and 16 bit audio formats.")
 
-    integer_data = struct.unpack(fmt, raw_data[0:16000000])
-    
+    integer_data = struct.unpack(fmt, raw_data)
     del raw_data # Keep memory tidy (who knows how big it might be)
 
-    # ------------------------------------------------------------------------
-    # ------------------------------------------------------------------------
-    # PART 2: TRIGGER LED LIGHT STRIP WITH WAV DATA
-    # ------------------------------------------------------------------------
-    # ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# PART 2: TRIGGER LED LIGHT STRIP WITH WAV DATA
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
     
 def led_strip(wave_file):
     global integer_data
     
     pcm_channels(wave_file)
-    buzzer = buzzer.BuzzerSound("P2_1")    
+    
+    vib1 = vibration.Vibration("P2_1")
+    vib2 = vibration.Vibration("P2_3")
+    vib3 = vibration.Vibration("P1_33")
+    vib4 = vibration.Vibration("P1_36")
+
     client = opc.Client(ADDRESS)
+
     stop_time = time.time() + 60
     STR_LEN = 10
     
-    # ------------------------------------------------------------------------
-    # Main script
-    # ------------------------------------------------------------------------
-    leds = [(0, 0, 0)] * STR_LEN
     offset      = 0
     data_length = len(integer_data)
     
-    while time.time() < stop_time:
+    # Test if it can connect
+    if client.can_connect():
+        print ('connected to %s' % ADDRESS)
+    else:
+        # We could exit here, but instead let's just print a warning
+        # and then keep trying to send pixels in case the server
+        # appears later
+        print ('WARNING: could not connect to %s' % ADDRESS)
         
-        buzzer_freq = 0
+    leds = [(0, 0, 0)] * STR_LEN
+    
+    while time.time() < stop_time:
+        vib_freq = 0
         
         for i in range(STR_LEN):
             datavalue = abs(integer_data[(i+offset)])//16
-            buzzer_freq += datavalue
-            leds[i]   = (datavalue,datavalue,datavalue)
-    
+            vib_freq += datavalue
+            leds[i]  = (datavalue,datavalue,datavalue)
+
         offset = offset + STR_LEN   #Leaves remainder numebr of pixels to shift
-        
-        buzzer_freq = buzzer_freq // STR_LEN
-        
-        if buzzer_freq == 0:
-            buzzer_freq = 1
+        vib_freq = vib_freq // STR_LEN
+
+        if vib_freq == 0: # frequency can't be zero
+            vib_freq = 1
         
         if offset > data_length:
             break
@@ -169,13 +168,25 @@ def led_strip(wave_file):
         if not client.put_pixels(leds, channel=0):
             print('not connected')
         
-        # Do buzzer vibration
-        buzzer.play_tone(buzzer_freq)
-    
-        time.sleep(0.001)
+        # Do vibration
         
+        process_1 = Process(target=vib1.vibrate,args=(vib_freq,))
+        process_2 = Process(target=vib2.vibrate,args=(vib_freq,))
+        process_3 = Process(target=vib3.vibrate,args=(vib_freq,))
+        process_4 = Process(target=vib4.vibrate,args=(vib_freq,))
 
-if __name__ == "__main__":
-     led_strip("/var/lib/cloud9/ENGI301/Project_1/speaker/music/aimer.wav")
-     
-     
+        processes = [process_1, process_2, process_3, process_4]
+        for process in processes:
+            process.start() #start vibration
+        
+        process_1.join()
+        process_2.join()
+        process_3.join()
+        process_4.join()
+        
+        time.sleep(0.001)
+    
+    vib1.end()
+    vib2.end()
+    vib3.end()
+    vib4.end()
