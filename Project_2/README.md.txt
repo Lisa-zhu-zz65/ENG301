@@ -1,0 +1,2 @@
+This folder contains all information about the PCB design of the Music Bracelet Project.
+The Project Proposal, bottom and top layer layouts are in the docs folder; the implementation files are in the EAGLE folder; the manufacturing files are in the MFG folder; the schematics is in this folder.
